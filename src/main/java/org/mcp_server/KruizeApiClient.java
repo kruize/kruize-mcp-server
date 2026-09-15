@@ -18,4 +18,8 @@ public interface KruizeApiClient {
     @GET
     @Path("/listRecommendations")
     List<Recommendations> getAllRecommendations();
+
+    @GET
+    @Path("/health")
+    String getHealth();
 }

@@ -16,7 +16,7 @@ spec:
       containers:
         - name: kruize-mcp-server
           # Update this to your image name and tag
-          image: quay.io/shbirada/kruize-mcp-server:v2
+          image: quay.io/shbirada/kruize-mcp-server:v3
           imagePullPolicy: IfNotPresent
           env:
             - name: KRUIZE_URL
@@ -28,6 +28,22 @@ spec:
           ports:
             - containerPort: 8082
               name: http
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               memory: "250Mi"

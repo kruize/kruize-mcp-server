@@ -138,3 +138,39 @@ npx @modelcontextprotocol/inspector http://localhost:8082/mcp/
 # Replace with your actual Kruize URL
 QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://192.168.49.2:30080 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
 ```
+---
+
+## Health Check API
+
+The server includes comprehensive health check endpoints for monitoring and Kubernetes integration:
+
+### Quick Test
+
+```bash
+# Test health endpoints (default port)
+curl http://localhost:8080/q/health        # Overall health
+curl http://localhost:8080/q/health/live   # Liveness probe
+curl http://localhost:8080/q/health/ready  # Readiness probe
+
+# Test with custom URL
+curl http://localhost:8082/q/health        # Custom port
+curl https://kruize-mcp.example.com/q/health  # Remote server
+```
+
+### Health Endpoints
+
+- **`/q/health`** - Overall health status (aggregates all checks)
+- **`/q/health/live`** - Liveness probe (triggers pod restart on failure)
+- **`/q/health/ready`** - Readiness probe (removes pod from service on failure)
+
+### Kubernetes Integration
+
+Health probes are automatically configured in the Kubernetes manifests:
+- **Liveness Probe**: Checks every 30s, restarts pod on failure
+- **Readiness Probe**: Checks every 10s, removes from service on failure
+
+Both probes verify Kruize API connectivity to ensure the service is operational.
+
+### Documentation
+
+- **[Health Check API Guide](docs/HEALTH_CHECK_API.md)** - Complete API reference

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: kruize-mcp-server
-          image: quay.io/shbirada/kruize-mcp-server:v2
+          image: quay.io/shbirada/kruize-mcp-server:v3
           # Set the environment variable inside the container
           env:
             - name: KRUIZE_URL
@@ -23,6 +23,22 @@ spec:
               value: "http://kruize.openshift-tuning:8080"
           ports:
             - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               memory: "250Mi"
