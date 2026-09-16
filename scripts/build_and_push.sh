@@ -49,9 +49,10 @@ done
 # If -i was given, parse registry/repo:tag from it; otherwise assemble from parts.
 if [[ -n "${IMAGE_NAME}" ]]; then
     # Validate full image reference: registry/repo:tag (tag is optional, defaults to latest)
-    validate "IMAGE" "${IMAGE_NAME}" '[a-zA-Z0-9._:-]+/[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)?(:[a-zA-Z0-9._-]+)?'
-    # Split off tag (everything after the last colon, if any)
-    if [[ "${IMAGE_NAME}" == *:* ]]; then
+    # Allow arbitrary number of path segments after the registry hostname.
+    validate "IMAGE" "${IMAGE_NAME}" '[a-zA-Z0-9._:-]+/[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*(:[a-zA-Z0-9._-]+)?'
+    # Split off tag only when a colon appears after a slash (i.e. it is not a registry port).
+    if [[ "${IMAGE_NAME}" == */*:* ]]; then
         IMAGE_TAG="${IMAGE_NAME##*:}"
         IMAGE_NAME="${IMAGE_NAME%:*}"
     fi
@@ -63,8 +64,8 @@ else
     # Validate all user-supplied inputs before use in shell commands
     # Registry: hostname with optional port (e.g. quay.io, localhost:5000)
     validate "REGISTRY"  "${REGISTRY}"  '[a-zA-Z0-9._:-]+'
-    # Repo name: one or two path segments of alphanumeric/hyphen/underscore/dot
-    validate "REPO_NAME" "${REPO_NAME}" '[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)?'
+    # Repo name: one or more path segments of alphanumeric/hyphen/underscore/dot
+    validate "REPO_NAME" "${REPO_NAME}" '[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*'
     # Tag: alphanumeric, dots, hyphens, underscores — no slashes or shell metacharacters
     validate "IMAGE_TAG" "${IMAGE_TAG}" '[a-zA-Z0-9._-]+'
     IMAGE_NAME="${REGISTRY}/${REPO_NAME}:${IMAGE_TAG}"
@@ -79,9 +80,16 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Detect container runtime: prefer docker, fall back to podman
+# Detect container runtime: prefer docker (requires Buildx plugin), fall back to podman
 if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-    RUNTIME="docker"
+    if docker buildx version &>/dev/null 2>&1; then
+        RUNTIME="docker"
+    elif command -v podman &>/dev/null; then
+        RUNTIME="podman"
+    else
+        echo "Error: Docker Buildx plugin is required but not available, and podman is not installed." >&2
+        exit 1
+    fi
 elif command -v podman &>/dev/null; then
     RUNTIME="podman"
 else
@@ -95,7 +103,9 @@ echo "Building: ${IMAGE_NAME} for ${PLATFORMS}"
 # Multi-platform builds can only be exported via a registry push.
 # For local-only builds, fall back to the native platform so the image
 # is immediately usable (docker --load / podman --tag).
-NATIVE_PLATFORM="linux/$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+# uname -m values: x86_64 (Linux/Intel), aarch64 (Linux ARM64), arm64 (macOS Apple Silicon), armv7l (ARMv7)
+NATIVE_PLATFORM="linux/$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/;s/arm64/arm64/;s/armv7l/arm\/v7/')"
+validate "NATIVE_PLATFORM" "${NATIVE_PLATFORM}" 'linux/(amd64|arm64|arm\/v7|s390x|ppc64le)'
 IS_MULTI_PLATFORM=false
 if [[ "${PLATFORMS}" == *","* ]]; then
     IS_MULTI_PLATFORM=true

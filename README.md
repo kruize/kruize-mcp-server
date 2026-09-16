@@ -87,7 +87,6 @@ npx @modelcontextprotocol/inspector http://localhost:8082/mcp/
 - `getCostOptimizedRecommendations` - Get cost-optimized CPU/memory recommendations for a container. Optionally by namespace
 - `getPerformanceRecommendations` - Get performance-optimized CPU/memory recommendations for a container. Optionally by namespace
 - `getIdleWorkloads` - Get idle workloads (CPU usage < 1 millicore). Optionally with cost and performance recommendations
-
 ---
 
 ## Local Development
@@ -142,8 +141,6 @@ QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://192.168.49.2:30080 java -jar target/kru
 ## Building and Pushing the Container Image
 
 The [`scripts/build_and_push.sh`](scripts/build_and_push.sh) script handles multi-arch image builds and pushes using either Docker (buildx) or Podman. The Dockerfile uses a multi-stage build — compilation happens inside the container, so no local JDK or Maven installation is required.
-
-> **Prerequisite:** The base images are pulled from `registry.access.redhat.com`, which requires **Red Hat VPN** connectivity. You will get a `DeadlineExceeded` / `i/o timeout` error if VPN is not active when the build runs.
 
 ### Options
 
