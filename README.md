@@ -24,8 +24,7 @@ cd kruize-mcp-server
 ./local_monitoring_demo.sh -c openshift -e container
 
 # 3. Build and push image
-docker build -t <registry>/<username>/kruize-mcp-server:<tag> .
-docker push <registry>/<username>/kruize-mcp-server:<tag>
+./scripts/build_and_push.sh -i <registry>/<username>/kruize-mcp-server:<tag> -p true
 
 # 4. Deploy MCP server (in openshift-tuning namespace)
 oc apply -f manifests/kruize-mcp-server-openshift.yaml -n openshift-tuning
@@ -138,6 +137,43 @@ npx @modelcontextprotocol/inspector http://localhost:8082/mcp/
 # Replace with your actual Kruize URL
 QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://192.168.49.2:30080 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
 ```
+---
+
+## Building and Pushing the Container Image
+
+The [`scripts/build_and_push.sh`](scripts/build_and_push.sh) script handles multi-arch image builds and pushes using either Docker (buildx) or Podman. The Dockerfile uses a multi-stage build — compilation happens inside the container, so no local JDK or Maven installation is required.
+
+> **Prerequisite:** The base images are pulled from `registry.access.redhat.com`, which requires **Red Hat VPN** connectivity. You will get a `DeadlineExceeded` / `i/o timeout` error if VPN is not active when the build runs.
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-i IMAGE` | — | Full image reference (e.g. `quay.io/user/kruize-mcp-server:v1.0.0`); overrides `-r`, `-n`, `-t` |
+| `-r REGISTRY` | `quay.io` | Container registry hostname |
+| `-n REPO_NAME` | `kruize/kruize-mcp-server` | Repository name |
+| `-t TAG` | `latest` | Image tag |
+| `-l PLATFORMS` | `linux/amd64,linux/arm64` | Comma-separated target platforms |
+| `-p PUSH` | `false` | Push image after build (`true`/`false`) |
+
+All options can also be set via environment variables (`REGISTRY`, `REPO_NAME`, `IMAGE_TAG`, `PLATFORMS`, `PUSH_IMAGE`).
+
+### Examples
+
+```bash
+# Build and push using a full image reference (simplest form)
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:v1.0.0 -p true
+
+# Build only (no push)
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:v1.0.0
+
+# Build for a single platform
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:dev -l linux/amd64
+
+# Build and push using individual flags
+./scripts/build_and_push.sh -r docker.io -n myorg/kruize-mcp-server -t latest -p true
+```
+
 ---
 
 ## Health Check API
