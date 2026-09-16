@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Keep Dockerfile base images up to date
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "mvp_demo"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
