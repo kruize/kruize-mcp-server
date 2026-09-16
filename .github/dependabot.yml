@@ -3,6 +3,7 @@ updates:
   # Keep Dockerfile base images up to date
   - package-ecosystem: "docker"
     directory: "/"
+    target-branch: "mvp_demo"
     schedule:
       interval: "weekly"
       day: "monday"
