@@ -92,7 +92,22 @@ fi
 echo "Using runtime: ${RUNTIME}"
 echo "Building: ${IMAGE_NAME} for ${PLATFORMS}"
 
-# Multi-arch build
+# Multi-platform builds can only be exported via a registry push.
+# For local-only builds, fall back to the native platform so the image
+# is immediately usable (docker --load / podman --tag).
+NATIVE_PLATFORM="linux/$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+IS_MULTI_PLATFORM=false
+if [[ "${PLATFORMS}" == *","* ]]; then
+    IS_MULTI_PLATFORM=true
+fi
+
+if [ "${PUSH_IMAGE}" = "false" ] && [ "${IS_MULTI_PLATFORM}" = "true" ]; then
+    echo "Warning: multi-platform builds require a registry push (--push)." >&2
+    echo "  Falling back to native platform (${NATIVE_PLATFORM}) for local build." >&2
+    PLATFORMS="${NATIVE_PLATFORM}"
+fi
+
+# Build
 if [ "${RUNTIME}" = "docker" ]; then
     BUILDER_NAME="kruize-mcp-builder"
     if ! docker buildx inspect "${BUILDER_NAME}" &>/dev/null; then
@@ -104,8 +119,9 @@ if [ "${RUNTIME}" = "docker" ]; then
     if [ "${PUSH_IMAGE}" = "true" ]; then
         docker buildx build --platform="${PLATFORMS}" --tag "${IMAGE_NAME}" --provenance=false --sbom=false --push "${PROJECT_ROOT}"
     else
-        docker buildx build --platform="${PLATFORMS}" --tag "${IMAGE_NAME}" --provenance=false --sbom=false "${PROJECT_ROOT}"
-        echo "Image built but not pushed. Use -p true to push."
+        # --load imports the single-platform image into the local Docker daemon
+        docker buildx build --platform="${PLATFORMS}" --tag "${IMAGE_NAME}" --provenance=false --sbom=false --load "${PROJECT_ROOT}"
+        echo "Image built and loaded locally as ${IMAGE_NAME}. Use -p true to push."
     fi
 
 else
@@ -122,7 +138,9 @@ else
     if [ "${PUSH_IMAGE}" = "true" ]; then
         podman manifest push "${MANIFEST}" "${IMAGE_NAME}"
     else
-        echo "Image built but not pushed. Use -p true to push."
+        # Tag the manifest under the requested image name so it is locally usable
+        podman tag "${MANIFEST}" "${IMAGE_NAME}"
+        echo "Image built and tagged locally as ${IMAGE_NAME}. Use -p true to push."
     fi
 fi
 
