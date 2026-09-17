@@ -253,7 +253,7 @@ Idle detection is based on Kruize notification code `323001`.
 
 | Parameter | Required | Type | Default | Description |
 |-----------|----------|------|---------|-------------|
-| `includeRecommendations` | No | boolean | `false` | When `true`, includes cost and performance recommendations alongside each idle workload |
+| `includeRecommendations` | Yes | boolean | — | When `true`, includes cost and performance recommendations alongside each idle workload |
 
 ### Example Prompts
 
@@ -286,23 +286,36 @@ Are there any abandoned deployments in the cluster?
   {
     "namespace": "staging",
     "containerName": "old-batch-job",
-    "workloadName": "batch-processor",
-    "workloadType": "deployment",
-    "experimentName": "batch-experiment",
-    "currentUsage": {
-      "requests": {
-        "cpu": { "amount": 0.0005, "format": "cores" },
-        "memory": { "amount": 52428800, "format": "bytes" }
-      }
-    },
-    "costRecommendations": [
-      {
-        "term": "short_term",
-        "config": {
-          "requests": { "cpu": { "amount": 0.001, "format": "cores" } }
+    "experiment_name": "batch-experiment",
+    "experiment_type": "container",
+    "recommendation_terms": {
+      "short_term": {
+        "duration_in_hours": 24.0,
+        "monitoring_start_time": "2024-01-01T00:00:00.000Z",
+        "recommendation_engines": {
+          "cost": {
+            "pods_count": 1,
+            "confidence_level": 0.0,
+            "config": {
+              "requests": {
+                "cpu": { "amount": 0.001, "format": "cores" },
+                "memory": { "amount": 52428800, "format": "bytes" }
+              },
+              "limits": {
+                "cpu": { "amount": 0.001, "format": "cores" },
+                "memory": { "amount": 52428800, "format": "bytes" }
+              }
+            },
+            "variation": {
+              "requests": {
+                "cpu": { "amount": -0.4995, "format": "cores" },
+                "memory": { "amount": 0, "format": "bytes" }
+              }
+            }
+          }
         }
       }
-    ]
+    }
   }
 ]
 ```

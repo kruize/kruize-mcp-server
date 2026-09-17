@@ -92,7 +92,8 @@ The build produces: `target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar`
 **Kruize on localhost (default):**
 
 ```bash
-java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+# Kruize defaults to port 8080, so run the MCP server on a different port to avoid conflicts
+QUARKUS_HTTP_PORT=8082 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
 ```
 
 **Kruize on Minikube:**
@@ -119,11 +120,15 @@ QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://<host>:<port> \
 ### 3. Confirm It Started
 
 ```bash
+# Default port (8080):
 curl http://localhost:8080/q/health/ready
+# Custom port (for example, 8082):
+curl http://localhost:8082/q/health/ready
 # Expected: {"status":"UP",...}
 ```
 
-MCP endpoint: `http://localhost:8080/mcp`
+MCP endpoint (default port): `http://localhost:8080/mcp`
+MCP endpoint (custom port):  `http://localhost:8082/mcp`
 
 ### Development Mode (auto-reload)
 
@@ -443,15 +448,14 @@ kubectl exec -it <pod-name> -n monitoring -- \
 
 SSE connections are terminated by intermediate proxies with short timeouts (common on OpenShift).
 
-**On OpenShift** — the manifests already include the required HAProxy annotations:
+**On OpenShift** — the manifests set a 5-minute HAProxy timeout, so SSE connections may still be terminated after five minutes:
 ```yaml
-haproxy.router.openshift.io/timeout: 30m
+haproxy.router.openshift.io/timeout: 5m
 haproxy.router.openshift.io/disable_cookies: "true"
 ```
+To extend this, edit `manifests/kruize-mcp-server-openshift.yaml` and increase the annotation value (e.g. `30m`) before applying.
 
 **On Minikube / local** — no fix needed; NodePort services connect directly to pods.
-
-See [SSE Troubleshooting](SSE_TROUBLESHOOTING.md) for a full diagnosis checklist.
 
 ### No tools returned by MCP client
 

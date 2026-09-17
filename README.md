@@ -41,7 +41,7 @@ MCP endpoint: `http://localhost:8080/mcp`
 KRUIZE_URL="http://$(minikube ip):$(kubectl get svc kruize -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')"
 
 # 2. Patch the manifest, then deploy
-sed -i "s|http://<minikube-ip>:<kruize-port>|$KRUIZE_URL|g" manifests/kruize-mcp-server-minikube.yaml
+sed -i.bak "s|http://<minikube-ip>:<kruize-port>|$KRUIZE_URL|g" manifests/kruize-mcp-server-minikube.yaml
 kubectl apply -f manifests/kruize-mcp-server-minikube.yaml
 kubectl wait --for=condition=ready pod -l app=kruize-mcp-server -n monitoring --timeout=120s
 
