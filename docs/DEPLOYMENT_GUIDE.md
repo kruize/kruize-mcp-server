@@ -85,7 +85,7 @@ cd kruize-mcp-server
 ./mvnw clean package -DskipTests
 ```
 
-The build produces: `target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar`
+The build produces: `target/kruize-mcp-server-0.0.1-runner.jar`
 
 ### 2. Run
 
@@ -93,28 +93,28 @@ The build produces: `target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar`
 
 ```bash
 # Kruize defaults to port 8080, so run the MCP server on a different port to avoid conflicts
-QUARKUS_HTTP_PORT=8082 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+QUARKUS_HTTP_PORT=8082 java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 **Kruize on Minikube:**
 
 ```bash
 KRUIZE_URL="http://$(minikube ip):$(kubectl get svc kruize -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')"
-KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 **Kruize on OpenShift:**
 
 ```bash
 KRUIZE_URL=$(oc get route kruize -n openshift-tuning --template='http://{{ .spec.host }}')
-KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 **Custom port (to avoid conflicts):**
 
 ```bash
 QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://<host>:<port> \
-  java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+  java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 ### 3. Confirm It Started
@@ -423,7 +423,7 @@ lsof -i :8080          # macOS / Linux
 netstat -ano | findstr :8080   # Windows
 
 # Run on a different port
-QUARKUS_HTTP_PORT=8090 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+QUARKUS_HTTP_PORT=8090 java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 ### Readiness probe DOWN
@@ -477,5 +477,5 @@ Kruize uses ports 8080 and 8081. The MCP server defaults to 8080. When running b
 
 ```bash
 QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://... \
-  java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+  java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```

@@ -6,7 +6,7 @@
 
     <groupId>org.mcp-server</groupId>
     <artifactId>kruize-mcp-server</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1</version>
 
     <properties>
         <compiler-plugin.version>3.14.0</compiler-plugin.version>
