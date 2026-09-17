@@ -124,7 +124,7 @@ Your Kruize MCP Server is now running and accessible via the Inspector tool.
 For quick testing, use this single command:
 
 ```bash
-kubectl run kruize-mcp-server --image=quay.io/kruize/kruize-mcp-server:latest \
+kubectl run kruize-mcp-server --image=quay.io/kruize/kruize-mcp-server:0.0.1 \
   --port=8082 --env="KRUIZE_URL=http://<minikube-ip>:<kruize-port>" \
   --env="QUARKUS_HTTP_PORT=8082" -n monitoring && \
 kubectl expose pod kruize-mcp-server --type=NodePort --port=8082 \
