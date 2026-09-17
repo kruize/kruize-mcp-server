@@ -1,176 +1,186 @@
 # Kruize MCP Server
 
-A cloud-native MCP server designed to act as a bridge between AI models/Agentic workflows and the Kruize recommendations engine. Kruize MCP server exposes Kubernetes resource recommendation data, including idle workload detection, as simple, actionable tools for AI models.
+A cloud-native [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that bridges AI assistants and the [Kruize](https://github.com/kruize/autotune) resource optimization engine. It exposes Kubernetes workload recommendations — CPU, memory, and idle workload detection — as structured tools that any MCP-compatible AI client can invoke.
+
+```
+AI Client (Claude, Bob, etc.)
+        │  MCP over HTTP/SSE
+        ▼
+Kruize MCP Server  ←→  Kruize API  ←→  Kubernetes cluster
+```
+
+## Prerequisites
+
+| Tool | Purpose |
+|------|---------|
+| Java 21+ | Build and run the server (Local JAR only) |
+| `kubectl` or `oc` | Deploy to Kubernetes / OpenShift |
+| Kruize running | The backend recommendations engine |
+
+> Need Kruize? → `git clone https://github.com/kruize/kruize-demos.git` and run `local_monitoring_demo.sh`. See the [Deployment Guide](docs/DEPLOYMENT_GUIDE.md#step-0--deploy-kruize) for details.
+
+---
 
 ## Quick Start
 
-Choose your platform:
-- **[OpenShift](#openshift)** - Deploy on OpenShift clusters
-- **[Minikube](#minikube)** - Deploy on Minikube for local development
-
----
-
-## OpenShift
-
-### Deploy
+### Local JAR (fastest)
 
 ```bash
-# 1. Clone and build
-git clone https://github.com:kruize/kruize-mcp-server.git
+git clone https://github.com/kruize/kruize-mcp-server.git
 cd kruize-mcp-server
-./mvnw install
-
-# 2. Deploy Kruize
-./local_monitoring_demo.sh -c openshift -e container
-
-# 3. Build and push image
-docker build -t <registry>/<username>/kruize-mcp-server:<tag> .
-docker push <registry>/<username>/kruize-mcp-server:<tag>
-
-# 4. Deploy MCP server (in openshift-tuning namespace)
-oc apply -f manifests/kruize-mcp-server-openshift.yaml -n openshift-tuning
-oc expose service kruize-mcp-server-service -n openshift-tuning
-
-# 5. Get URL and connect Inspector
-oc get route kruize-mcp-server-service -n openshift-tuning --template='{{ .spec.host }}'
-npx @modelcontextprotocol/inspector http://<route-url>/mcp/
+./mvnw clean package -DskipTests
+KRUIZE_URL=http://<kruize-host>:<port> java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
-**Deployment Location:** `openshift-tuning` namespace (same as Kruize)
+MCP endpoint: `http://localhost:8080/mcp`
 
----
-
-## Minikube
-
-### Deploy
+### Minikube
 
 ```bash
-# 1. Clone
-git clone https://github.com:kruize/kruize-mcp-server.git
-cd kruize-mcp-server
+# 1. Get Kruize URL
+KRUIZE_URL="http://$(minikube ip):$(kubectl get svc kruize -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')"
 
-# 2. Deploy Kruize (sets up Minikube + Prometheus)
-git clone https://github.com/kruize/kruize-demos.git
-cd kruize-demos/monitoring/local_monitoring
-./local_monitoring_demo.sh -c minikube -f -e container
-
-# 3. Get Kruize connection details
-# Get Kruize URL (Minikube IP + NodePort)
-KRUIZE_URL=$(echo "http://$(minikube ip):$(kubectl get svc kruize -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')")
-echo "Kruize URL: $KRUIZE_URL"
-
-# 4. Deploy MCP server
-cd kruize-mcp-server
-# Update the KRUIZE_URL in the manifest file with the value from above
-# Edit manifests/kruize-mcp-server-minikube.yaml and replace <minikube-ip>:<kruize-port> with the actual URL
+# 2. Patch the manifest, then deploy
+sed -i.bak "s|http://<minikube-ip>:<kruize-port>|$KRUIZE_URL|g" manifests/kruize-mcp-server-minikube.yaml
 kubectl apply -f manifests/kruize-mcp-server-minikube.yaml
 kubectl wait --for=condition=ready pod -l app=kruize-mcp-server -n monitoring --timeout=120s
 
-# 5. Port forward and connect Inspector
-kubectl port-forward -n monitoring service/kruize-mcp-server-service 8082:8082
-npx @modelcontextprotocol/inspector http://localhost:8082/mcp/
+# 3. Port-forward
+kubectl port-forward -n monitoring svc/kruize-mcp-server-service 8082:8082
 ```
 
-**Note:** Kruize MCP server uses port 8082 (Kruize uses 8080/8081)
+MCP endpoint: `http://localhost:8082/mcp`
+
+### OpenShift
+
+```bash
+git clone https://github.com/kruize/kruize-mcp-server.git
+cd kruize-mcp-server
+oc apply -f manifests/kruize-mcp-server-openshift.yaml -n openshift-tuning
+
+# Get the route URL
+MCP_ROUTE=$(oc get route kruize-mcp-server-service -n openshift-tuning --template='http://{{ .spec.host }}')
+echo "MCP endpoint: $MCP_ROUTE/mcp"
+```
+
+MCP endpoint: `http://<route-host>/mcp`
+
+> For full step-by-step instructions and troubleshooting see the **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**.
 
 ---
-**Important:** After connecting with Inspector tool, verify the URL matches your deployment in the Inspector tool UI:
-- OpenShift: Use the MCP server route URL from `oc get route kruize-mcp-server-service -n openshift-tuning`
-- Minikube: Use `http://localhost:8082/mcp/` (after port-forward)
-- Local JAR: Use `http://localhost:8080/mcp/` or `http://localhost:8082/mcp/` depending on configuration
+
+## Connect an AI Client
+
+Once the server is running, connect your AI client to the MCP endpoint.
+
+### MCP Inspector (browser-based testing)
+
+```bash
+npx @modelcontextprotocol/inspector <mcp-endpoint>
+```
+
+### Claude Desktop
+
+Edit your Claude Desktop config file (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "kruize": {
+      "url": "http://localhost:8080/mcp",
+      "type": "streamable-http"
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add --transport streamable-http kruize http://localhost:8080/mcp
+```
+
+### Bob
+
+Add to your `~/.bob/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kruize": {
+      "url": "http://localhost:8080/mcp",
+      "type": "streamable-http"
+    }
+  }
+}
+```
+
+> Replace `http://localhost:8080/mcp` with your actual MCP endpoint (e.g. the OpenShift route URL or `http://localhost:8082/mcp` for Minikube). See the [Deployment Guide](docs/DEPLOYMENT_GUIDE.md#connect-an-ai-client) for all client options and multi-endpoint setup.
 
 ---
 
-## MCP Tools
+## Available Tools
 
-- `listAllExperiments` - List all experiments
-- `listAllRecommendations` - List resource optimization CPU/memory recommendations for all the containers
-- `getCostOptimizedRecommendations` - Get cost-optimized CPU/memory recommendations for a container. Optionally by namespace
-- `getPerformanceRecommendations` - Get performance-optimized CPU/memory recommendations for a container. Optionally by namespace
-- `getIdleWorkloads` - Get idle workloads (CPU usage < 1 millicore). Optionally with cost and performance recommendations
+| Tool | Description |
+|------|-------------|
+| `listAllExperiments` | List all Kruize experiments |
+| `listAllRecommendations` | CPU/memory recommendations for all containers |
+| `getCostOptimizedRecommendations` | Cost-optimized sizing, optionally filtered by namespace |
+| `getPerformanceOptimizedRecommendations` | Performance-optimized sizing, optionally filtered by namespace |
+| `getIdleWorkloads` | Workloads with near-zero CPU usage; optionally include recommendations |
+
+Example prompts:
+- _"Which workloads in the production namespace are over-provisioned for CPU?"_
+- _"Show me idle workloads with cost-saving recommendations."_
+- _"What are the performance recommendations for the auth service?"_
 
 ---
 
-## Local Development
+## Building and Pushing the Container Image
 
-### Run from JAR - OpenShift Configuration
+The [`scripts/build_and_push.sh`](scripts/build_and_push.sh) script handles multi-arch image builds and pushes using either Docker (buildx) or Podman. The Dockerfile uses a multi-stage build — compilation happens inside the container, so no local JDK or Maven installation is required.
 
-```bash
-# 1. Build the project
-./mvnw clean install
+### Options
 
-# 2. Get your Kruize route URL
-KRUIZE_URL=$(oc get route kruize -n openshift-tuning --template='http://{{ .spec.host }}')
-echo "Kruize URL: $KRUIZE_URL"
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-i IMAGE` | — | Full image reference (e.g. `quay.io/user/kruize-mcp-server:0.0.1`); overrides `-r`, `-n`, `-t` |
+| `-r REGISTRY` | `quay.io` | Container registry hostname |
+| `-n REPO_NAME` | `kruize/kruize-mcp-server` | Repository name |
+| `-t TAG` | `latest` | Image tag |
+| `-l PLATFORMS` | `linux/amd64,linux/arm64` | Comma-separated target platforms |
+| `-p PUSH` | `false` | Push image after build (`true`/`false`) |
 
-# 3. Run the JAR file with Kruize URL (port 8080)
-KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+All options can also be set via environment variables (`REGISTRY`, `REPO_NAME`, `IMAGE_TAG`, `PLATFORMS`, `PUSH_IMAGE`).
 
-# 4. Connect Inspector
-npx @modelcontextprotocol/inspector http://localhost:8080/mcp/
-```
-
-**Custom Kruize URL (if needed):**
-```bash
-# Replace with your actual Kruize route URL
-KRUIZE_URL=http://kruize-openshift-tuning.apps.your-cluster.com java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
-```
-
-### Run from JAR - Minikube Configuration
+### Examples
 
 ```bash
-# 1. Build the project
-./mvnw clean install
+# Build and push using a full image reference (simplest form)
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:0.0.1 -p true
 
-# 2. Get Kruize URL (Minikube IP + NodePort)
-KRUIZE_URL=$(echo "http://$(minikube ip):$(kubectl get svc kruize -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')")
-echo "Kruize URL: $KRUIZE_URL"
+# Build only (no push)
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:0.0.1
 
-# 3. Run the JAR file (port 8082 to avoid conflict with Kruize on 8080/8081)
-QUARKUS_HTTP_PORT=8082 KRUIZE_URL=$KRUIZE_URL java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+# Build for a single platform
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:dev -l linux/amd64
 
-# 4. Connect Inspector
-npx @modelcontextprotocol/inspector http://localhost:8082/mcp/
+# Build and push using individual flags
+./scripts/build_and_push.sh -r docker.io -n myorg/kruize-mcp-server -t latest -p true
 ```
 
-**Custom Kruize URL (if needed):**
-```bash
-# Replace with your actual Kruize URL
-QUARKUS_HTTP_PORT=8082 KRUIZE_URL=http://192.168.49.2:30080 java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
-```
 ---
 
-## Health Check API
+## Documentation
 
-The server includes comprehensive health check endpoints for monitoring and Kubernetes integration:
+| Doc | Description |
+|-----|-------------|
+| [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Full setup, client config, and troubleshooting for all environments |
+| [MCP Tools Reference](docs/MCP_TOOLS_REFERENCE.md) | Tool parameters, example prompts, and sample output |
+| [Health Check API](docs/HEALTH_CHECK_API.md) | Health endpoint reference |
 
-### Quick Test
+---
 
-```bash
-# Test health endpoints (default port)
-curl http://localhost:8080/q/health        # Overall health
-curl http://localhost:8080/q/health/live   # Liveness probe
-curl http://localhost:8080/q/health/ready  # Readiness probe
+## License
 
-# Test with custom URL
-curl http://localhost:8082/q/health        # Custom port
-curl https://kruize-mcp.example.com/q/health  # Remote server
-```
-
-### Health Endpoints
-
-- **`/q/health`** - Overall health status (aggregates all checks)
-- **`/q/health/live`** - Liveness probe (triggers pod restart on failure)
-- **`/q/health/ready`** - Readiness probe (removes pod from service on failure)
-
-### Kubernetes Integration
-
-Health probes are automatically configured in the Kubernetes manifests:
-- **Liveness Probe**: Checks every 30s, restarts pod on failure
-- **Readiness Probe**: Checks every 10s, removes from service on failure
-
-Both probes verify Kruize API connectivity to ensure the service is operational.
-
-### Documentation
-
-- **[Health Check API Guide](docs/HEALTH_CHECK_API.md)** - Complete API reference
+[Apache 2.0](LICENSE)

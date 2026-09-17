@@ -1,14 +1,21 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
-COPY src /usr/src/app/src
-COPY pom.xml /usr/src/app
-RUN mvn -f /usr/src/app/pom.xml -B clean package
+# ---- Build stage ----
+# Red Hat UBI9 OpenJDK 21 image defaults to non-root uid 185 (default:root);
+# /deployments is pre-created and owned by that user, so no privilege escalation needed.
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-3.1788862457 AS build
 
-RUN ls -R /usr/src/app/target # For debugging
+COPY pom.xml /deployments/pom.xml
+COPY src /deployments/src
+RUN mvn -f /deployments/pom.xml -B clean package
 
-FROM eclipse-temurin:21-jre
+# ---- Runtime stage ----
+# Minimal Red Hat UBI9 JRE image; runs as non-root user 185 by default
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-3.1788862450
+
 WORKDIR /deployments
 
 # Copy the executable JAR from the build stage
-COPY --from=build /usr/src/app/target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar /deployments/app.jar
+COPY --from=build /deployments/target/*-runner.jar /deployments/app.jar
+
 EXPOSE 8080
+
 ENTRYPOINT ["java", "-jar", "/deployments/app.jar"]
