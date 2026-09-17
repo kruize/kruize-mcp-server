@@ -81,7 +81,7 @@ npx @modelcontextprotocol/inspector <mcp-endpoint>
 
 ### Claude Desktop
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or the equivalent for your OS:
+Edit your Claude Desktop config file (`claude_desktop_config.json`):
 
 ```json
 {
@@ -94,16 +94,22 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 }
 ```
 
-### Bob / VS Code
+### Claude Code
 
-Add to your VS Code `settings.json`:
+```bash
+claude mcp add --transport streamable-http kruize http://localhost:8080/mcp
+```
+
+### Bob
+
+Add to your `~/.bob/settings/mcp.json`:
 
 ```json
 {
-  "bob.mcpServers": {
+  "mcpServers": {
     "kruize": {
       "url": "http://localhost:8080/mcp",
-      "transport": "sse"
+      "type": "streamable-http"
     }
   }
 }
