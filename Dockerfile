@@ -9,7 +9,7 @@ RUN mvn -f /deployments/pom.xml -B clean package
 
 # ---- Runtime stage ----
 # Minimal Red Hat UBI9 JRE image; runs as non-root user 185 by default
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-3.1788862450
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-3.1789051371
 
 WORKDIR /deployments
 
