@@ -29,7 +29,7 @@ Kruize MCP Server  ←→  Kruize API  ←→  Kubernetes cluster
 git clone https://github.com/kruize/kruize-mcp-server.git
 cd kruize-mcp-server
 ./mvnw clean package -DskipTests
-KRUIZE_URL=http://<kruize-host>:<port> java -jar target/kruize-mcp-server-1.0-SNAPSHOT-runner.jar
+KRUIZE_URL=http://<kruize-host>:<port> java -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 MCP endpoint: `http://localhost:8080/mcp`
@@ -144,7 +144,7 @@ The [`scripts/build_and_push.sh`](scripts/build_and_push.sh) script handles mult
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-i IMAGE` | — | Full image reference (e.g. `quay.io/user/kruize-mcp-server:v1.0.0`); overrides `-r`, `-n`, `-t` |
+| `-i IMAGE` | — | Full image reference (e.g. `quay.io/user/kruize-mcp-server:0.0.1`); overrides `-r`, `-n`, `-t` |
 | `-r REGISTRY` | `quay.io` | Container registry hostname |
 | `-n REPO_NAME` | `kruize/kruize-mcp-server` | Repository name |
 | `-t TAG` | `latest` | Image tag |
@@ -157,10 +157,10 @@ All options can also be set via environment variables (`REGISTRY`, `REPO_NAME`, 
 
 ```bash
 # Build and push using a full image reference (simplest form)
-./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:v1.0.0 -p true
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:0.0.1 -p true
 
 # Build only (no push)
-./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:v1.0.0
+./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:0.0.1
 
 # Build for a single platform
 ./scripts/build_and_push.sh -i quay.io/user/kruize-mcp-server:dev -l linux/amd64
