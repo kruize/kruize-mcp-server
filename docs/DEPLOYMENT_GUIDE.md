@@ -330,16 +330,16 @@ Config file locations:
 
 Restart Claude Desktop after saving.
 
-### Bob / VS Code
+### Bob
 
-Add to VS Code `settings.json` (`Ctrl+,` → open JSON):
+Add to your `~/.bob/settings/mcp.json` (or workspace `.bob/mcp.json`):
 
 ```json
 {
-  "bob.mcpServers": {
+  "mcpServers": {
     "kruize": {
       "url": "http://localhost:8080/mcp",
-      "transport": "sse"
+      "type": "streamable-http"
     }
   }
 }
@@ -349,14 +349,14 @@ You can register multiple endpoints side-by-side (e.g., local and remote):
 
 ```json
 {
-  "bob.mcpServers": {
+  "mcpServers": {
     "kruize-local": {
       "url": "http://localhost:8080/mcp",
-      "transport": "sse"
+      "type": "streamable-http"
     },
     "kruize-openshift": {
       "url": "http://<route-host>/mcp",
-      "transport": "sse"
+      "type": "streamable-http"
     }
   }
 }
@@ -390,6 +390,7 @@ curl -v http://<host>:<port>/mcp
 # Full MCP handshake
 curl -s -X POST http://<host>:<port>/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
 ```
 
