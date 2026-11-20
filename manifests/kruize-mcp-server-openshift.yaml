@@ -21,6 +21,9 @@ spec:
               # Use the stable Service DNS name.
               # Format: http://<service-name>.<namespace>:<port>
               value: "http://kruize.openshift-tuning:8080"
+            - name: JAVA_TOOL_OPTIONS
+              # Mitigation for CVE-2026-114938 (RHSB-2026-018)
+              value: "-XX:-UseBASE64Intrinsics"
           ports:
             - containerPort: 8080
           livenessProbe:

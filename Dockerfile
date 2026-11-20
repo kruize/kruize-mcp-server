@@ -16,6 +16,9 @@ WORKDIR /deployments
 # Copy the executable JAR from the build stage
 COPY --from=build /deployments/target/*-runner.jar /deployments/app.jar
 
+# Mitigation for CVE-2026-114938 (RHSB-2026-018): disable AVX-512 Base64 intrinsics on x86-64
+ENV JAVA_TOOL_OPTIONS="-XX:-UseBASE64Intrinsics"
+
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "/deployments/app.jar"]
