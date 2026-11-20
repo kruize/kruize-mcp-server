@@ -29,7 +29,7 @@ Kruize MCP Server  ←→  Kruize API  ←→  Kubernetes cluster
 git clone https://github.com/kruize/kruize-mcp-server.git
 cd kruize-mcp-server
 ./mvnw clean package -DskipTests
-KRUIZE_URL=http://<kruize-host>:<port> java -jar target/kruize-mcp-server-0.0.1-runner.jar
+KRUIZE_URL=http://<kruize-host>:<port> java -XX:-UseBASE64Intrinsics -jar target/kruize-mcp-server-0.0.1-runner.jar
 ```
 
 MCP endpoint: `http://localhost:8080/mcp`

@@ -26,8 +26,8 @@ spec:
               # Port 8082 to avoid conflict with Kruize (8080, 8081)
               value: "8082"
             - name: JAVA_TOOL_OPTIONS
-              # Mitigation for CVE-2026-114938 (RHSB-2026-018)
-              value: "-XX:-UseBASE64Intrinsics"
+              # Mitigation for CVE-2026-114938 (RHSB-2026-018): combine with existing options
+              value: "$(JAVA_TOOL_OPTIONS) -XX:-UseBASE64Intrinsics"
           ports:
             - containerPort: 8082
               name: http
