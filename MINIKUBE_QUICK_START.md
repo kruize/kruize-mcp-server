@@ -126,7 +126,8 @@ For quick testing, use this single command:
 ```bash
 kubectl run kruize-mcp-server --image=quay.io/kruize/kruize-mcp-server:0.0.1 \
   --port=8082 --env="KRUIZE_URL=http://<minikube-ip>:<kruize-port>" \
-  --env="QUARKUS_HTTP_PORT=8082" -n monitoring && \
+  --env="QUARKUS_HTTP_PORT=8082" \
+  --env="JAVA_TOOL_OPTIONS=-XX:-UseBASE64Intrinsics" -n monitoring && \
 kubectl expose pod kruize-mcp-server --type=NodePort --port=8082 \
   --target-port=8082 --name=kruize-mcp-server-service -n monitoring && \
 kubectl wait --for=condition=ready pod kruize-mcp-server -n monitoring --timeout=120s && \
